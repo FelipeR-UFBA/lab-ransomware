@@ -7,10 +7,12 @@ settings:
 
 hosts:
 
+  # Controlador SDN (Kytos)
   c1:
     kind: k8spod
     image: hackinsdn/kytos:allinone
-    args: ["-E"]
+    args:
+      - "-E"
     env:
       - {name: "MONGO_USERNAME", value: "kytos"}
       - {name: "MONGO_PASSWORD", value: "kytos"}
@@ -23,58 +25,89 @@ hosts:
     posY: 123.5
     group: HackInSDN.com
 
-
+  # Atacante
   atacante:
     ip: 192.168.1.100/24
     kind: k8spod
-    image: hackinsdn/windows7:latest
+    image: dockurr/windows
     isolateControlNet: false
+
     publish:
       - "5901:5900"
-      - "8006:5900"
+      - "8006:5900"     
+
+    env:
+      - {name: "VERSION", value: "7u"}
+      - {name: "KVM", value: "N"}
+      - {name: "VNC", value: "true"}
+      - {name: "WEB_VNC", value: "true"}
+
     postStart:
-      - 'sh -c "mkdir -p /data &&
-               curl -fsSL --retry 3 --connect-timeout 10 -o /data/WannaCry.zip https://raw.githubusercontent.com/ytisf/theZoo/master/malware/Binaries/Ransomware.WannaCry/Ransomware.WannaCry.zip || true"'
+      - 'sh -c "mkdir -p /data && curl -fsSL --retry 3 --connect-timeout 10 -o /data/Ransomware.WannaCry.zip https://raw.githubusercontent.com/ytisf/theZoo/master/malware/Binaries/Ransomware.WannaCry/Ransomware.WannaCry.zip || true"'
+
     posX: 110.4
     posY: 249.0
     group: Atacante
 
-
+  # Vítima 1
   vitima1:
     ip: 192.168.1.101/24
     kind: k8spod
-    image: hackinsdn/windows7:latest
+    image: dockurr/windows
+
     publish:
       - "5902:5900"
-      - "8007:5900"
+      - "8007:5900"     
+
+    env:
+      - {name: "VERSION", value: "7u"}
+      - {name: "KVM", value: "N"}
+      - {name: "VNC", value: "true"}
+      - {name: "WEB_VNC", value: "true"}
+
     posX: 318.1
     posY: 382.0
     group: Vitimas
 
-
+  # Vítima 2
   vitima2:
     ip: 192.168.1.102/24
     kind: k8spod
-    image: hackinsdn/windows7:latest
+    image: dockurr/windows
+
     publish:
       - "5903:5900"
-      - "8008:5900"
+      - "8008:5900"     
+
+    env:
+      - {name: "VERSION", value: "7u"}
+      - {name: "KVM", value: "N"}
+      - {name: "VNC", value: "true"}
+      - {name: "WEB_VNC", value: "true"}
+
     posX: 442.4
     posY: 382.0
     group: Vitimas
 
-
+  # Vítima 3
   vitima3:
     ip: 192.168.1.103/24
     kind: k8spod
-    image: hackinsdn/windows7:latest
+    image: dockurr/windows
+
     publish:
       - "5904:5900"
-      - "8009:5900"
+      - "8009:5900"     
+
+    env:
+      - {name: "VERSION", value: "7u"}
+      - {name: "KVM", value: "N"}
+      - {name: "VNC", value: "true"}
+      - {name: "WEB_VNC", value: "true"}
+
     posX: 566.0
     posY: 382.0
     group: Vitimas
-
 
 switches:
   s1:
